@@ -1,0 +1,22 @@
+@Web_HostAddress = https://localhost:5645
+
+POST {{Web_HostAddress}}/test
+Accept: application/json
+Content-Type: application/json
+
+{
+  "id": -1,
+  "firstName": "NathanNathanNathanNathanNathanNathanNathanNathanNathanNathanNathanNathanNathanNathanNathanNathanNathanNathanNathanNathan",
+  "lastName": "Sickle",
+  "mailingAddress": {
+    "id": 69,
+    "line1": "178 Kirby Ave",
+    "line2": null,
+    "city": "Mountain Top",
+    "state": "PA",
+    "postalCode": "18707",
+    "countryCode": "US"
+  }
+}
+
+###
