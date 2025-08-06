@@ -1,9 +1,8 @@
 # Validator.AspNetCore
-   
+
 Simple, fluent interface validation implementation for ASP.NET Core.
 
-## Installing Validator.AspNetCore
-
+#### Installing Validator.AspNetCore
 You should install Mediator.CodeGen with NuGet or the .NET Core command line interface:
 
 `Install-Package Validator.AspNetCore`
@@ -12,21 +11,20 @@ or
 
 `dotnet add package Validator.AspNetCore`
 
-## Getting Started
+#### Getting Started
 Validator.AspNetCore supports Microsoft.Extensions.DependencyInjection.Abstractions directly:
 
-`services.AddValidatorsFromAssemblies(assembly1, assembly2);`
+`services.AddValidator(assembly1, assembly2);`
 
-(this registers concrete IValidator<> implementations as singletons);
+(this registers an IValidator, and any concrete IValidator<> implementations, as singletons);
 
 OR
 
-`services.AddValidatorsFromAssemblies(ServiceLifetime.Scoped, assembly1, assembly2);`
+`services.AddValidator(ServiceLifetime.Scoped, assembly1, assembly2);`
 
-(this overload registers concrete IValidator<> implementations with the desired ServiceLifetime);
+(this registers an IValidator, and any concrete IValidator<> implementations, with the desired ServiceLifetime);
 
-## Usage (see /samples directory for more)
-
+#### Usage (see /samples directory for more)
 ```
 using Validator.AspNetCore;
 
@@ -46,34 +44,59 @@ public sealed class PersonValidator : AbstractValidator<Person>
    }
 }
 ```
-
-## Custom Rules
-
+#### Custom Rules
 ```
 using Validator.AspNetCore;
 using Validator.AspNetCore.Rules;
 
 public static class RuleBuilderExtensions
 {
-   private const int MaximumIdValue = int.MaxValue - 69;
+    private const int FunnyIdValue = 69;
 
-   // add custom rules by extending the IRuleBuilder<,> interface
-   public static IRuleBuilder<T, int> RejectHugeIds<T>(this IRuleBuilder<T, int> ruleBuilder)
-   {
-      ruleBuilder.AddRule(validationContext =>
-      {
-         if (validationContext.PropertyValue > MaximumIdValue)
-         {
-            return new ValidationFailure(
+    // add custom rules by extending the IRuleBuilder<,> interface
+    public static IRuleBuilder<T, int> RejectFunnyId<T>(this IRuleBuilder<T, int> ruleBuilder)
+    {
+        ruleBuilder.AddRule((propertyValue, validationContext) =>
+        {
+            if (propertyValue != FunnyIdValue)
+            {
+                return;
+            }
+
+            validationContext.AddFailure(new ValidationFailure(
                PropertyName: validationContext.PropertyName,
-               ErrorCode: "RejectHugeIdsRule",
-               ErrorMessage: $"{validationContext.PropertyName} cannot be greater than {MaximumIdValue}.");
-         }
+               ErrorCode: "RejectFunnyIdRule",
+               ErrorMessage: $"{validationContext.PropertyName} cannot be equal to {FunnyIdValue}."));
+        });
 
-         return true;
-      });
-
-      return ruleBuilder;
-   }
+        return ruleBuilder;
+    }
 }
+```
+#### Validation
+```
+// Inject IValidator to manually validate
+app
+    .MapPost("/user", async (
+        [FromBody] CreateUserRequest request,
+        [FromServices] IValidator validator,
+        CancellationToken cancellationToken) =>
+    {
+        var validationResult = await validator.ValidateAsync(request, cancellationToken);
+        ...
+    });
+
+// Use AddValidation() to add an IEndpointFilter that validates the parameters automatically
+app
+    .MapPost("/user", async (
+        [FromBody] CreateUserRequest request,
+        CancellationToken cancellationToken) =>
+    {
+        ...
+    })
+    .AddValidation(options =>
+    {
+        // specify how to generate a response when validation fails
+        options.OnFailure = validationFailures => new { isSuccess = false, error = validationFailures.FirstOrDefault()?.ErrorCode }
+    });
 ```
